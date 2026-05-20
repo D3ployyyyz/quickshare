@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Link criado</title>
+</head>
+<body>
+<h1>Link criado</h1>
+
+<p>Copie o link abaixo e compartilhe:</p>
+
+<input type="text" value="{{ preview_url }}" id="shareInput" style="width:100%;" readonly onclick="this.select()">
+<p>
+  <button onclick="copy()">Copiar link</button>
+  <a href="{{ preview_url }}">Ir para preview</a>
+</p>
+
+<script>
+function copy(){
+  const el = document.getElementById("shareInput");
+  el.select();
+  document.execCommand("copy");
+  alert("Link copiado!");
+}
+</script>
+</body>
+</html>

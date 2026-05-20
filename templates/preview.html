@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Preview</title>
+    <style>
+      body { font-family: Arial, sans-serif; max-width:900px; margin:20px auto; }
+      details summary { cursor:pointer; user-select:none; }
+      ul { list-style:none; padding-left:14px; }
+      li { margin:4px 0; }
+      a { text-decoration:none; color: #0066cc; }
+      a:hover { text-decoration:underline; }
+    </style>
+</head>
+<body>
+    <h2>📂 Conteúdo enviado</h2>
+
+    {# renderiza a árvore usando macro recursiva #}
+    {% macro render(node) -%}
+      <ul>
+      {%- for key in node.keys()|sort %}
+        {%- if key == '__files' %}
+          {%- for fname, rel in node['__files']|sort(attribute=0) %}
+            <li>📄 <a href="{{ url_for('download_file', share_id=share_id, relpath=rel) }}">{{ fname }}</a> <small>— {{ rel }}</small></li>
+          {%- endfor %}
+        {%- else %}
+          <li>
+            <details open>
+              <summary>📁 {{ key }}</summary>
+              {{ render(node[key]) }}
+            </details>
+          </li>
+        {%- endif %}
+      {%- endfor %}
+      </ul>
+    {%- endmacro %}
+
+    {{ render(tree) }}
+
+    <br>
+
+    {% if single_file %}
+        <a href="{{ url_for('download', share_id=share_id) }}">
+            ⬇️ Baixar arquivo
+        </a>
+    {% else %}
+        <a href="{{ url_for('download', share_id=share_id) }}">
+            ⬇️ Baixar tudo (.zip)
+        </a>
+    {% endif %}
+</body>
+</html>

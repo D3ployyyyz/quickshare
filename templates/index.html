@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>QuickShare</title>
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family: "Inter","Helvetica Neue",Arial,sans-serif;
+}
+
+body{
+  background:#fff;
+  background-image: radial-gradient(#eaeaea 1px, transparent 1px);
+  background-size: 22px 22px;
+  color:#111;
+}
+
+/* Layout container */
+.wrapper{
+  max-width:1200px;
+  margin:auto;
+  padding:60px 40px;
+}
+
+/* Header */
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.logo{
+  font-size:22px;
+  font-weight:900;
+}
+
+.btn-main{
+  background:#ff2d55;
+  border:none;
+  color:white;
+  padding:10px 18px;
+  border-radius:6px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+/* Hero */
+.hero{
+  margin-top:70px;
+  display:grid;
+  grid-template-columns:1.2fr 1fr;
+  gap:60px;
+  align-items:center;
+}
+
+.hero h1{
+  font-size:52px;
+  font-weight:900;
+  line-height:1.05;
+}
+
+.hero p{
+  margin-top:20px;
+  font-size:18px;
+  color:#555;
+}
+
+/* Upload panel */
+.panel{
+  margin-top:80px;
+  border:2px dashed #ccc;
+  border-radius:18px;
+  padding:40px;
+  background:white;
+}
+
+/* Dropzone */
+#dropzone{
+  border:2px dashed #ddd;
+  border-radius:12px;
+  padding:40px;
+  text-align:center;
+  font-size:18px;
+  cursor:pointer;
+  transition:.2s;
+}
+
+#dropzone.drag{
+  border-color:#000;
+  background:#fafafa;
+}
+
+/* Controls */
+.controls{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:20px;
+}
+
+.controls input{
+  border:1px solid #ddd;
+  padding:8px 10px;
+  border-radius:6px;
+  font-size:14px;
+}
+
+.controls button{
+  background:black;
+  color:white;
+  border:none;
+  padding:10px 16px;
+  border-radius:6px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+#submitBtn{
+  margin-top:20px;
+  background:#ff2d55;
+  color:white;
+  border:none;
+  padding:14px 22px;
+  border-radius:8px;
+  font-weight:bold;
+  font-size:16px;
+  cursor:pointer;
+}
+
+/* Preview tree */
+#filePreview{
+  margin-top:20px;
+  font-size:14px;
+}
+
+ul{
+  list-style:none;
+  padding-left:18px;
+}
+
+li{
+  padding:4px 0;
+  display:flex;
+  justify-content:space-between;
+  border-bottom:1px dashed #eee;
+}
+
+.file-meta{
+  color:#999;
+  font-size:12px;
+  margin-left:6px;
+}
+
+button.remove{
+  border:none;
+  background:none;
+  color:#ff2d55;
+  cursor:pointer;
+  font-size:12px;
+}
+
+details summary{
+  cursor:pointer;
+  font-weight:600;
+}
+
+/* Error */
+.error{
+  color:#ff2d55;
+  font-weight:bold;
+  margin-bottom:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrapper">
+
+<header>
+  <div class="logo">/quickshare</div>
+</header>
+
+<div class="hero">
+  <div>
+    <h1>Compartilhe arquivos.<br>Simples e rápido.</h1>
+    <p>Envie arquivos e pastas inteiras com visual minimalista editorial japonês.</p>
+  </div>
+  <div style="font-size:100px;text-align:center;">📂</div>
+</div>
+
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+<div class="panel">
+
+<form id="uploadForm" action="/" method="post" enctype="multipart/form-data">
+  <input id="fileInput" type="file" multiple hidden>
+  <input id="dirInput" type="file" webkitdirectory directory multiple hidden>
+
+  <div class="controls">
+    <button type="button" id="pickFiles">Selecionar arquivos</button>
+    <button type="button" id="pickFolders">Selecionar pastas</button>
+    <div style="flex:1"></div>
+    <input name="password" placeholder="Senha (opcional)">
+   <input name="max_downloads" class="only-numbers" placeholder="Limite downloads" style="width:140px">
+  <input name="expire_hours" class="only-numbers" placeholder="Expira (horas)" style="width:140px">
+
+  </div>
+
+  <div id="dropzone">Arraste arquivos ou pastas aqui</div>
+  <div id="filePreview">Nenhum arquivo/pasta selecionada.</div>
+
+  <button type="submit" id="submitBtn">Enviar arquivos</button>
+</form>
+
+</div>
+</div>
+
+<script>
+const $ = sel => document.querySelector(sel);
+const fileInput = $('#fileInput'), dirInput = $('#dirInput'), drop = $('#dropzone');
+const preview = $('#filePreview'), form = $('#uploadForm');
+let filesStore = [], relSet = new Set();
+
+const relOf = f => f.webkitRelativePath || f.relativePath || f.name;
+
+const addFiles = list => {
+  for (const f of list) {
+    const r = relOf(f);
+    if (!r || relSet.has(r)) continue;
+    filesStore.push(f); relSet.add(r);
+  }
+  renderPreview();
+};
+
+$('#pickFiles').onclick = () => fileInput.click();
+$('#pickFolders').onclick = () => dirInput.click();
+fileInput.onchange = () => { addFiles(fileInput.files); fileInput.value = ''; };
+dirInput.onchange  = () => { addFiles(dirInput.files); dirInput.value = ''; };
+
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag'); });
+drop.addEventListener('dragleave', ()=> drop.classList.remove('drag'));
+drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('drag'); addFiles(e.dataTransfer.files); });
+
+const buildTree = paths => {
+  const root = {};
+  for (const p of paths) {
+    let node = root;
+    for (const [i, part] of p.split('/').filter(Boolean).entries()) {
+      if (i === p.split('/').length - 1) node.__files = node.__files || [], node.__files.push({name: part, rel: p});
+      else node = node[part] = node[part] || {};
+    }
+  }
+  return root;
+};
+
+function renderNode(node){
+  const ul = document.createElement('ul');
+  const folders = Object.keys(node).filter(k=>k!=='__files').sort();
+  for (const name of folders){
+    const li = document.createElement('li');
+    const details = document.createElement('details');
+    details.appendChild(Object.assign(document.createElement('summary'), {textContent: '📁 '+name}));
+    details.appendChild(renderNode(node[name]));
+    li.appendChild(details); ul.appendChild(li);
+  }
+  if (Array.isArray(node.__files)) {
+    node.__files.sort((a,b)=>a.name.localeCompare(b.name)).forEach(f=>{
+      const li = document.createElement('li');
+      const text = document.createElement('span');
+      text.innerHTML = `📄 ${escapeHtml(f.name)} <span class="file-meta">(${escapeHtml(f.rel)})</span>`;
+      const btn = document.createElement('button');
+      btn.textContent = 'Remover'; btn.className = 'remove';
+      btn.onclick = () => { filesStore = filesStore.filter(ff=>relOf(ff)!==f.rel); relSet.delete(f.rel); renderPreview(); };
+      li.appendChild(text); li.appendChild(btn); ul.appendChild(li);
+    });
+  }
+  return ul;
+}
+
+function renderPreview(){
+  preview.innerHTML = '';
+  if (!filesStore.length) { preview.textContent = 'Nenhum arquivo/pasta selecionada.'; return; }
+  const paths = filesStore.map(f => relOf(f));
+  preview.appendChild(renderNode(buildTree(paths)));
+}
+
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!filesStore.length) return alert('Nenhum arquivo/pasta para enviar.');
+  const fd = new FormData();
+  for (const f of filesStore) fd.append('files', f, relOf(f));
+  for (const inp of form.querySelectorAll('input[name="password"],input[name="max_downloads"],input[name="expire_hours"]'))
+    if (inp.value) fd.append(inp.name, inp.value);
+  try {
+    const res = await fetch(form.action, {method:'POST', body:fd, headers:{'X-Requested-With':'XMLHttpRequest'}});
+    if (!res.ok) { const data = await res.json().catch(()=>null); return alert('Erro: '+(data?.error||res.statusText)); }
+    const data = await res.json(); if (data?.share_url) location.href = data.share_url; else alert('Upload concluído.');
+  } catch(err){ console.error(err); alert('Erro de rede ao enviar arquivos.'); }
+});
+
+renderPreview();
+</script>
+
+<script>
+const uploadBox = document.getElementById("uploadBox");
+const fileInput = document.getElementById("fileInput");
+
+uploadBox.addEventListener("dragover", e => {
+  e.preventDefault();
+  uploadBox.style.borderColor = "black";
+});
+
+uploadBox.addEventListener("dragleave", () => {
+  uploadBox.style.borderColor = "#ccc";
+});
+
+uploadBox.addEventListener("drop", e => {
+  e.preventDefault();
+  uploadBox.style.borderColor = "#ccc";
+  console.log(e.dataTransfer.files);
+});
+</script>
+
+<script>
+document.querySelectorAll(".only-numbers").forEach(input => {
+  input.addEventListener("input", () => {
+    input.value = input.value.replace(/\D/g, ""); // remove tudo que não é número
+  });
+});
+</script>
+
+
+</body>
+</html>
